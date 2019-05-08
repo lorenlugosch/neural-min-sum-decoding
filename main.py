@@ -8,32 +8,17 @@ from tensorflow.python.framework import ops
 from helper_functions import load_code, syndrome
 import os
 
-TRAIN_CORRELATED_NOISE = False
-TEST_CORRELATED_NOISE = False
 DEBUG = False
 TRAINING = True
 SUM_PRODUCT = False
 MIN_SUM = not SUM_PRODUCT
-ALL_ZEROS_CODEWORD_TRAINING = False 
+ALL_ZEROS_CODEWORD_TRAINING = True 
 ALL_ZEROS_CODEWORD_TESTING = False
 NO_SIGMA_SCALING_TRAIN = False
 NO_SIGMA_SCALING_TEST = False
 np.set_printoptions(precision=3)
-REED_SOLOMON = (sys.argv[8][:2] == "RS")
-if REED_SOLOMON:
-	GF = np.ceil(np.log2(float(sys.argv[8].split("_")[1]))).astype(np.int)
 
 print("My PID: " + str(os.getpid()))
-
-if TRAIN_CORRELATED_NOISE:
-	print("Training noise is correlated")
-else:
-	print("Uncorrelated training noise")
-
-if TEST_CORRELATED_NOISE:
-	print("Testing noise is correlated")
-else:
-	print("Uncorrelated testing noise")
 
 if SUM_PRODUCT:
 	print("Using Sum-Product algorithm")
@@ -318,7 +303,6 @@ with tf.Session(config=config) as session: #tf.Session(config=tf.ConfigProto(gpu
 	BERs = []
 	SERs = []
 	FERs = []
-	FERs_HDD = []
 
 	print("\nBuilding the decoder graph...")
 	belief_propagation = belief_propagation_op(soft_input=tf_train_dataset, labels=tf_train_labels)
@@ -377,10 +361,7 @@ with tf.Session(config=config) as session: #tf.Session(config=tf.ConfigProto(gpu
 			# create minibatch with codewords from multiple SNRs
 			for i in range(0,len(SNRs)):
 				sigma = np.sqrt(1. / (2 * (np.float(k)/np.float(n)) * 10**(SNRs[i]/10)))
-				if TRAIN_CORRELATED_NOISE:
-					noise = sigma * np.random.multivariate_normal(np.zeros(n), covariance_matrix,[batch_size/len(SNRs)]).transpose()
-				else:
-					noise = sigma * np.random.randn(n,batch_size//len(SNRs))
+				noise = sigma * np.random.randn(n,batch_size//len(SNRs))
 				start_idx = batch_size*i//len(SNRs)
 				end_idx = batch_size*(i+1)//len(SNRs)
 				channel_information[:,start_idx:end_idx] = BPSK_codewords[:,start_idx:end_idx] + noise
@@ -435,10 +416,7 @@ with tf.Session(config=config) as session: #tf.Session(config=tf.ConfigProto(gpu
 				BPSK_codewords = (0.5 - codewords.astype(np.float32)) * 2.0
 
 			# add Gaussian noise to codeword
-			if TEST_CORRELATED_NOISE:
-				noise = sigma * np.random.multivariate_normal(np.zeros(n), covariance_matrix,[BPSK_codewords.shape[1]]).transpose()
-			else:
-				noise = sigma * np.random.randn(BPSK_codewords.shape[0],BPSK_codewords.shape[1])
+			noise = sigma * np.random.randn(BPSK_codewords.shape[0],BPSK_codewords.shape[1])
 			channel_information = BPSK_codewords + noise
 
 			# convert channel information to LLR format

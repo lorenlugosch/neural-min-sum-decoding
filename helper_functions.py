@@ -59,7 +59,7 @@ def load_code(H_filename, G_filename):
 	if G_filename == "":
 		G = []
 	else:
-		if H_filename[0:3] == "BCH": # dear God please fix this
+		if "BCH" in H_filename: # dear God please fix this
 			G = np.loadtxt(G_filename).astype(np.int)
 			G = G.transpose()
 		else:
